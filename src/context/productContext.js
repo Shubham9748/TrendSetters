@@ -1,0 +1,66 @@
+//Context API: It allows data to be passed through a component tree without having to pass props manually at entry level. This makes it easier to share data between components.
+
+//Steps to use Context API
+//1. Create a context
+//2.return
+//3. consumer: to get delivery, needs to scan, verify etc  : using useContext Hooks
+
+//at first we need to create data, a global warehouse from where we can get(send/receive) data easily
+
+import {createContext, useContext, useEffect, useReducer} from "react";
+import axios from "axios";
+import reducer from "../reducer/productReducer"
+//create context
+const AppContext = createContext();
+const API="https://trendsetter-api.onrender.com/api/products";
+
+const initialState={
+    isLoading : false,
+    isError: false,
+    products : [],
+    featureProducts:[],
+    isSingleLoading: false,
+    singleProduct:{},
+};
+
+//create a provider
+const AppProvider =({children}) => {
+
+    const [state, dispatch] = useReducer(reducer,initialState);
+    
+    
+    const getProducts= async(url)=>{
+        dispatch({type:"SET_LOADING"})
+    try {
+         const res=await axios.get(url);
+         const products = await res.data;
+         dispatch({type: "SET_API_DATA", payload: products});
+         //console.log('Products:', product);
+    } catch (error) {
+        dispatch({type: "API_ERROR"})
+        //console.log('Error featching data:', error);
+    }   
+    };
+
+    const getSingleProduct= async(url)=>{
+        try{
+        const res=await axios.get(url);
+         const singleProduct = await res.data;
+         dispatch({ type:'SET_SINGLE_PRODUCT',payload:singleProduct });
+        }catch(error){}
+         dispatch({type:"SET_SINGLE_ERROR"})
+    }
+
+    useEffect(()=>{
+        getProducts(API);
+    },[])
+    return <AppContext.Provider value= {{...state, getSingleProduct}}>
+        {children}
+        </AppContext.Provider>
+};
+
+const useProductContext =()=>{
+    return useContext(AppContext);
+}
+
+export {AppProvider, AppContext, useProductContext};
